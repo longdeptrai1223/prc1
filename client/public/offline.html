@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTC Mining - Offline</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        .container {
+            max-width: 90%;
+            width: 400px;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #4f46e5;
+        }
+        p {
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .mining-continues {
+            background-color: #eef2ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #4338ca;
+        }
+        .info {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M8 11V5l8 3v6"></path>
+        </svg>
+        <h1>Bạn đang ngoại tuyến</h1>
+        <p>Không thể kết nối với máy chủ PTC Mining ngay bây giờ. Vui lòng kiểm tra kết nối internet của bạn.</p>
+        
+        <div class="mining-continues">
+            <strong>Đừng lo lắng!</strong> Nếu bạn đã bắt đầu đào PTC coin, quá trình đào vẫn tiếp tục diễn ra kể cả khi bạn offline.
+        </div>
+        
+        <a href="/" class="button">Thử lại</a>
+        
+        <div class="info">
+            <p>PTC Mining sẽ tự động kết nối lại khi có internet. Dữ liệu đào coin của bạn vẫn được cập nhật và đồng bộ với máy chủ khi có kết nối trở lại.</p>
+        </div>
+    </div>
+</body>
+</html>

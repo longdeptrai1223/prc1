@@ -1,68 +1,48 @@
 {
+  "short_name": "PTC Mining",
   "name": "PTC Mining App",
-  "short_name": "PTC Miner",
-  "description": "Mine PTC cryptocurrency with just a tap. Earn passive income through mining, referrals, and ad boosts.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#4F46E5",
-  "theme_color": "#4F46E5",
-  "orientation": "portrait",
+  "description": "Mine PTC cryptocurrency and earn rewards through referrals and ad views",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
       "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "logo512.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-1.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "platform": "android",
-      "label": "Mining Screen"
-    },
-    {
-      "src": "/screenshot-2.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "platform": "android",
-      "label": "Referral System"
-    }
-  ],
-  "related_applications": [
-    {
-      "platform": "play",
-      "url": "https://play.google.com/store/apps/details?id=com.ptcminer.app",
-      "id": "com.ptcminer.app"
-    }
-  ],
-  "prefer_related_applications": true,
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#4f46e5",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "scope": "/",
+  "serviceworker": {
+    "src": "service-worker.js"
+  },
+  "prefer_related_applications": false,
   "shortcuts": [
     {
       "name": "Start Mining",
-      "short_name": "Mine",
-      "description": "Start mining PTC immediately",
       "url": "/home",
-      "icons": [{ "src": "/icon-mine-96x96.png", "sizes": "96x96" }]
+      "description": "Start mining PTC coins"
     },
     {
       "name": "View Stats",
-      "short_name": "Stats",
-      "description": "View your mining statistics",
       "url": "/stats",
-      "icons": [{ "src": "/icon-stats-96x96.png", "sizes": "96x96" }]
+      "description": "Check your mining statistics"
     }
   ],
-  "serviceworker": {
-    "src": "/firebase-messaging-sw.js",
-    "scope": "/"
-  }
+  "related_applications": [],
+  "categories": ["finance", "crypto", "productivity"]
 }
