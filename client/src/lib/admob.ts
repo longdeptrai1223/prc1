@@ -4,8 +4,10 @@
  */
 
 // AdMob unit IDs
-const rewardedAdUnitId = import.meta.env.VITE_ADMOB_REWARDED_AD_UNIT_ID || process.env.ADMOB_REWARDED_AD_UNIT_ID || "ca-app-pub-3940256099942544/5224354917"; // Test ID if not provided
-const interstitialAdUnitId = import.meta.env.VITE_ADMOB_INTERSTITIAL_AD_UNIT_ID || process.env.ADMOB_INTERSTITIAL_AD_UNIT_ID || "ca-app-pub-3940256099942544/1033173712"; // Test ID if not provided
+const appId = import.meta.env.ADMOB_APP_ID;
+const bannerId = import.meta.env.ADMOB_BANNER_ID;
+const rewardedAdUnitId = import.meta.env.ADMOB_REWARDED_ID || "ca-app-pub-3940256099942544/5224354917"; // Test ID if not provided
+const interstitialAdUnitId = import.meta.env.ADMOB_INTERSTITIAL_ID || "ca-app-pub-3940256099942544/1033173712"; // Test ID if not provided
 
 // In a real app, we would import the AdMob SDK and initialize it
 // Since we're in a web environment, we'll create a simplified version that simulates the AdMob behavior
