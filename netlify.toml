@@ -11,3 +11,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+  [[headers]]
+  for = "/logo512.png"
+  [headers.values]
+    Content-Type = "image/png"
