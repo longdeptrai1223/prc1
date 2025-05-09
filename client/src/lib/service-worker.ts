@@ -48,24 +48,43 @@ export const isPwaMode = () => {
 
 /**
  * Kiểm tra xem thiết bị có online hay không
+ * Sử dụng fetch để kiểm tra kết nối thực tế thay vì chỉ dựa vào navigator.onLine
  */
-export const isOnline = () => {
-  return navigator.onLine;
+export const isOnline = async () => {
+  if (navigator.onLine) {
+    try {
+      const response = await fetch('https://www.google.com', { mode: 'no-cors' });
+      return response.status === 0 || (response.status >= 200 && response.status < 300);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 };
 
 /**
  * Đăng ký listener cho sự kiện online/offline
+ * Tự động kiểm tra lại kết nối khi trạng thái thay đổi
  */
 export const registerConnectivityListeners = (
   onOnline: () => void, 
   onOffline: () => void
 ) => {
-  window.addEventListener('online', onOnline);
-  window.addEventListener('offline', onOffline);
-  
+  const checkAndNotify = async () => {
+    const online = await isOnline();
+    if (online) onOnline();
+    else onOffline();
+  };
+
+  window.addEventListener('online', checkAndNotify);
+  window.addEventListener('offline', checkAndNotify);
+
+  // Kiểm tra ban đầu
+  checkAndNotify();
+
   return () => {
-    window.removeEventListener('online', onOnline);
-    window.removeEventListener('offline', onOffline);
+    window.removeEventListener('online', checkAndNotify);
+    window.removeEventListener('offline', checkAndNotify);
   };
 };
 
@@ -92,6 +111,7 @@ export const requestNotificationPermission = async () => {
 
 /**
  * Gửi thông báo với service worker
+ * Cập nhật đường dẫn biểu tượng từ /logo192.png thành /icon192.png
  */
 export const showNotification = async (title: string, options: NotificationOptions = {}) => {
   if (!('Notification' in window)) {
@@ -105,8 +125,8 @@ export const showNotification = async (title: string, options: NotificationOptio
   if (navigator.serviceWorker.controller) {
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, {
-      icon: '/logo192.png',
-      badge: '/logo192.png',
+      icon: '/icon192.png', // Cập nhật từ /logo192.png
+      badge: '/icon192.png', // Cập nhật từ /logo192.png
       vibrate: [100, 50, 100],
       ...options
     });
