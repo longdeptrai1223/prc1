@@ -36,7 +36,7 @@
   ],
   "screenshots": [
     {
-      "src": "screenshot1.png",
+      "src": "screenshots/app-screenshot.png",
       "type": "image/png",
       "sizes": "1080x1920",
       "form_factor": "narrow"

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Screenshot</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f9fafb;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            max-width: 100%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4338ca;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="screenshotCanvas" width="1080" height="1920"></canvas>
+    <button id="downloadBtn">Download Screenshot</button>
+
+    <script>
+        const canvas = document.getElementById('screenshotCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Header
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(0, 0, canvas.width, 200);
+        
+        // Logo
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 80px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PTC Mining', canvas.width / 2, 120);
+        
+        // Mining status section
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(40, 240, canvas.width - 80, 400);
+        
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 60px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Mining Status', 80, 320);
+        
+        // Progress bar background
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(80, 380, canvas.width - 160, 40);
+        
+        // Progress bar
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(80, 380, (canvas.width - 160) * 0.7, 40);
+        
+        // Mining time
+        ctx.fillStyle = '#374151';
+        ctx.font = '40px system-ui, sans-serif';
+        ctx.fillText('Mining: 3h 20m remaining', 80, 460);
+        
+        // Earnings
+        ctx.fillStyle = '#059669';
+        ctx.font = 'bold 50px system-ui, sans-serif';
+        ctx.fillText('Earnings: 128.5 PTC', 80, 540);
+        
+        // Stats section
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(40, 680, canvas.width - 80, 300);
+        
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 60px system-ui, sans-serif';
+        ctx.fillText('Statistics', 80, 760);
+        
+        // Stats data
+        ctx.fillStyle = '#374151';
+        ctx.font = '40px system-ui, sans-serif';
+        ctx.fillText('Total mined: 1,254 PTC', 80, 830);
+        ctx.fillText('Active boosters: 2', 80, 890);
+        ctx.fillText('Referrals: 5', 80, 950);
+        
+        // Action buttons
+        const buttonY = 1050;
+        const buttonHeight = 120;
+        const buttonMargin = 40;
+        const buttonWidth = (canvas.width - 80 - buttonMargin) / 2;
+        
+        // Mine button
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(40, buttonY, buttonWidth, buttonHeight);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 50px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Mine Now', 40 + buttonWidth/2, buttonY + 75);
+        
+        // Boost button
+        ctx.fillStyle = '#059669';
+        ctx.fillRect(40 + buttonWidth + buttonMargin, buttonY, buttonWidth, buttonHeight);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('Get Boost', 40 + buttonWidth + buttonMargin + buttonWidth/2, buttonY + 75);
+        
+        // Navigation bar
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(0, canvas.height - 180, canvas.width, 180);
+        
+        // Nav items
+        const navItems = ['Home', 'Stats', 'Chat', 'Profile'];
+        const navItemWidth = canvas.width / navItems.length;
+        
+        ctx.fillStyle = '#4b5563';
+        ctx.font = '40px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        
+        navItems.forEach((item, index) => {
+            ctx.fillText(item, navItemWidth * (index + 0.5), canvas.height - 80);
+            
+            // Highlight Home
+            if (index === 0) {
+                ctx.fillStyle = '#4f46e5';
+                ctx.fillRect(navItemWidth * index + navItemWidth/2 - 50, canvas.height - 180, 100, 8);
+                ctx.fillStyle = '#4b5563';
+            }
+        });
+        
+        // Download button functionality
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'app-screenshot.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>
