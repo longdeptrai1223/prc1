@@ -10,8 +10,8 @@ const urlsToCache = [
   '/offline.html',
   '/favicon.ico',
   '/manifest.json',
-  '/logo192.png',
-  '/logo512.png',
+  '/icon192.png', // Cập nhật từ /logo192.png
+  '/icon512.png', // Cập nhật từ /logo512.png
   '/assets/index.css',
   '/assets/index.js',
 ];
@@ -21,6 +21,19 @@ const API_URLS_TO_CACHE = [
   '/api/mining/status'
 ];
 
+// Hàm kiểm tra kết nối thực tế
+async function isOnline() {
+  if (navigator.onLine) {
+    try {
+      const response = await fetch('https://www.google.com', { mode: 'no-cors' });
+      return response.status === 0 || (response.status >= 200 && response.status < 300);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 // Install event - cache assets
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -28,6 +41,9 @@ self.addEventListener('install', event => {
       .then(cache => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
+      })
+      .catch(error => {
+        console.error('Failed to cache resources:', error);
       })
       .then(() => self.skipWaiting())
   );
@@ -51,12 +67,11 @@ self.addEventListener('activate', event => {
 });
 
 // Fetch event - network first for API, cache first for assets
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', async event => {
   const url = new URL(event.request.url);
   
   // Xử lý cho các API endpoints
   if (url.pathname.startsWith('/api/')) {
-    // Chỉ xử lý các API endpoints được chỉ định
     if (API_URLS_TO_CACHE.includes(url.pathname)) {
       event.respondWith(networkFirstWithBackgroundSync(event));
     }
@@ -89,9 +104,10 @@ self.addEventListener('fetch', event => {
 
             return response;
           })
-          .catch(error => {
-            // Nếu không thể fetch từ network (không có kết nối), trả về trang offline
-            if (event.request.mode === 'navigate') {
+          .catch(async error => {
+            // Kiểm tra kết nối thực tế trước khi trả về offline
+            const online = await isOnline();
+            if (!online && event.request.mode === 'navigate') {
               return caches.match(OFFLINE_FALLBACK);
             }
             
@@ -218,8 +234,8 @@ self.addEventListener('push', event => {
   
   const options = {
     body: data.body,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
+    icon: '/icon192.png', // Cập nhật từ /logo192.png
+    badge: '/icon192.png', // Cập nhật từ /logo192.png
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/'
@@ -235,8 +251,8 @@ self.addEventListener('push', event => {
 function showNotification(title, body, url = '/') {
   return self.registration.showNotification(title, {
     body,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
+    icon: '/icon192.png', // Cập nhật từ /logo192.png
+    badge: '/icon192.png', // Cập nhật từ /logo192.png
     vibrate: [100, 50, 100],
     data: { url }
   });
