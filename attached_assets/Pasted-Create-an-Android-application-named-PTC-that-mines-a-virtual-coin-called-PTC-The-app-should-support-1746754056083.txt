@@ -1,0 +1,71 @@
+Create an Android application named PTC that mines a virtual coin called PTC. The app should support Firebase, AdMob, Neon (PostgreSQL), Netlify, and PWA Builder for Android export.
+
+🔧 Core Features:
+Google Sign-In: Users must log in via Google.
+
+Mining Mechanism:
+
+Users can earn a maximum of 0.1 PTC per 24 hours.
+
+The user only needs to click “Mine” once after login, and can then go offline. After 24 hours, they must log in and click again to continue mining.
+
+The app does not require being online 24/7.
+
+Referral System:
+
+Each user has a unique referral ID.
+
+Each successful invite increases the mining rate by ×0.1, up to a maximum of ×2.0 (20 invites).
+
+This invite-based mining buff is permanent.
+
+Ad Buff System:
+
+Users can watch rewarded ads to temporarily boost mining speed by ×5.
+
+Each ad gives a 2-hour buff, and buffs stack up to 24 hours max.
+
+Total mining buff (ads + invites) must not exceed ×10.
+
+User Dashboard:
+
+Includes a menu to view user profile and mining stats.
+
+Push Notifications:
+
+Notify users when 24h is up and it’s time to claim and restart mining.
+
+Background Sync:
+
+The app should sync data periodically even if the user is not active (background sync support).
+
+AdMob Integration:
+
+The app must include AdMob Interstitial and Rewarded Ads, using real Ad Unit IDs.
+
+🧱 Tech Stack:
+Firebase for Authentication, Firestore or Neon for Database, and Cloud Functions if needed.
+
+AdMob for monetization (rewarded and interstitial).
+
+Neon PostgreSQL for optional backend database (alternative to Firestore).
+
+Netlify to host the PWA version of the app.
+
+PWA Builder to export the PWA to an Android APK.
+
+🔄 Environment Variables:
+I will provide all necessary API keys and IDs including:
+
+Firebase project credentials (Auth Domain, Storage Bucket, API Key, Client Email, Private Key, etc.)
+
+AdMob IDs (Rewarded & Interstitial)
+
+Neon DB connection string
+
+Netlify site URL and build config if needed
+
+⚠️ Known Issues to Fix:
+Netlify 404 error when deploying PWA – ensure correct routing and fallback handling (_redirects file).
+
+Login Redirect Issue – on emulator or Android device, after Google login completes, the app redirects back to the login page instead of staying logged in. Make sure Firebase Auth state is properly saved and restored on redirect.
