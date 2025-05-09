@@ -2,7 +2,9 @@ import {
   users, type User, type InsertUser,
   miningStats, type MiningStats, type InsertMiningStats,
   miningHistory, type MiningHistory, type InsertMiningHistory,
-  notificationSettings, type NotificationSettings, type InsertNotificationSettings
+  notificationSettings, type NotificationSettings, type InsertNotificationSettings,
+  chatMessages, type ChatMessage, type InsertChatMessage,
+  chatConversations, type ChatConversation, type InsertChatConversation
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -28,6 +30,17 @@ export interface IStorage {
   getNotificationSettingsByUserId(userId: number): Promise<NotificationSettings | undefined>;
   createNotificationSettings(settings: InsertNotificationSettings): Promise<NotificationSettings>;
   updateNotificationSettings(userId: number, settingsData: Partial<NotificationSettings>): Promise<NotificationSettings | undefined>;
+  
+  // Chat operations
+  getChatConversationsByUserId(userId: number): Promise<ChatConversation[]>;
+  getChatConversationById(id: number): Promise<ChatConversation | undefined>;
+  createChatConversation(conversation: InsertChatConversation): Promise<ChatConversation>;
+  updateChatConversation(id: number, data: Partial<ChatConversation>): Promise<ChatConversation | undefined>;
+  deleteChatConversation(id: number): Promise<boolean>;
+  
+  // Chat message operations
+  getChatMessagesByConversationId(conversationId: string, limit?: number): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 }
 
 // Memory storage implementation
@@ -36,22 +49,30 @@ export class MemStorage implements IStorage {
   private miningStats: Map<number, MiningStats>;
   private miningHistory: MiningHistory[];
   private notificationSettings: Map<number, NotificationSettings>;
+  private chatConversations: Map<number, ChatConversation>;
+  private chatMessages: ChatMessage[];
   
   private userIdCounter: number;
   private miningStatsIdCounter: number;
   private miningHistoryIdCounter: number;
   private notificationSettingsIdCounter: number;
+  private chatConversationsIdCounter: number;
+  private chatMessagesIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.miningStats = new Map();
     this.miningHistory = [];
     this.notificationSettings = new Map();
+    this.chatConversations = new Map();
+    this.chatMessages = [];
     
     this.userIdCounter = 1;
     this.miningStatsIdCounter = 1;
     this.miningHistoryIdCounter = 1;
     this.notificationSettingsIdCounter = 1;
+    this.chatConversationsIdCounter = 1;
+    this.chatMessagesIdCounter = 1;
   }
 
   // User operations
@@ -123,7 +144,12 @@ export class MemStorage implements IStorage {
   async getMiningHistoryByUserId(userId: number, limit: number = 10): Promise<MiningHistory[]> {
     return this.miningHistory
       .filter(history => history.userId === userId)
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+          return b.timestamp.getTime() - a.timestamp.getTime();
+        }
+        return 0;
+      })
       .slice(0, limit);
   }
 
@@ -168,6 +194,91 @@ export class MemStorage implements IStorage {
     
     this.notificationSettings.set(settings.id, updatedSettings);
     return updatedSettings;
+  }
+  
+  // Chat conversations operations
+  async getChatConversationsByUserId(userId: number): Promise<ChatConversation[]> {
+    return Array.from(this.chatConversations.values())
+      .filter(conversation => conversation.userId === userId)
+      .sort((a, b) => {
+        if (a.updatedAt && b.updatedAt) {
+          return b.updatedAt.getTime() - a.updatedAt.getTime();
+        }
+        return 0;
+      });
+  }
+  
+  async getChatConversationById(id: number): Promise<ChatConversation | undefined> {
+    return this.chatConversations.get(id);
+  }
+  
+  async createChatConversation(conversationData: InsertChatConversation): Promise<ChatConversation> {
+    const id = this.chatConversationsIdCounter++;
+    const now = new Date();
+    
+    const conversation: ChatConversation = {
+      ...conversationData,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.chatConversations.set(id, conversation);
+    return conversation;
+  }
+  
+  async updateChatConversation(id: number, data: Partial<ChatConversation>): Promise<ChatConversation | undefined> {
+    const conversation = this.chatConversations.get(id);
+    if (!conversation) return undefined;
+    
+    const updatedConversation = {
+      ...conversation,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.chatConversations.set(id, updatedConversation);
+    return updatedConversation;
+  }
+  
+  async deleteChatConversation(id: number): Promise<boolean> {
+    return this.chatConversations.delete(id);
+  }
+  
+  // Chat messages operations
+  async getChatMessagesByConversationId(conversationId: string, limit: number = 50): Promise<ChatMessage[]> {
+    return this.chatMessages
+      .filter(message => message.conversationId === conversationId)
+      .sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+          return a.timestamp.getTime() - b.timestamp.getTime();
+        }
+        return 0;
+      })
+      .slice(0, limit);
+  }
+  
+  async createChatMessage(messageData: InsertChatMessage): Promise<ChatMessage> {
+    const id = this.chatMessagesIdCounter++;
+    
+    const message: ChatMessage = {
+      ...messageData,
+      id,
+      timestamp: new Date()
+    };
+    
+    this.chatMessages.push(message);
+    
+    // Also update the conversation's updatedAt timestamp
+    const conversationId = Number(this.chatConversations.entries().next().value?.[0]);
+    if (conversationId) {
+      const conversation = await this.getChatConversationById(conversationId);
+      if (conversation) {
+        await this.updateChatConversation(conversationId, {});
+      }
+    }
+    
+    return message;
   }
 }
 

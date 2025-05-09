@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Users, BarChart2, User } from "lucide-react";
+import { Home, Users, BarChart2, User, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNavigation() {
@@ -7,6 +7,10 @@ export default function BottomNavigation() {
   
   const isActive = (path: string) => {
     return location === path;
+  };
+  
+  const isChatActive = () => {
+    return location.startsWith("/chat");
   };
   
   return (
@@ -44,6 +48,17 @@ export default function BottomNavigation() {
           >
             <BarChart2 className="h-6 w-6" />
             <span className="text-xs font-medium mt-1">Stats</span>
+          </button>
+          
+          <button 
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3", 
+              isChatActive() ? "text-primary" : "text-gray-500"
+            )}
+            onClick={() => navigate("/chat")}
+          >
+            <MessageSquare className="h-6 w-6" />
+            <span className="text-xs font-medium mt-1">Chat</span>
           </button>
           
           <button 

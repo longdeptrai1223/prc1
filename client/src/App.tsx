@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import Referrals from "@/pages/referrals";
 import Stats from "@/pages/stats";
 import Profile from "@/pages/profile";
+import Chat from "@/pages/chat";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
@@ -16,9 +17,11 @@ import BottomNavigation from "@/components/bottom-navigation";
 function Router() {
   const [location, setLocation] = useLocation();
   
+  const showHeaderAndNav = !location.startsWith("/chat") && location !== "/";
+  
   return (
     <>
-      {location !== "/" && (
+      {showHeaderAndNav && (
         <Header />
       )}
       
@@ -28,10 +31,12 @@ function Router() {
         <Route path="/referrals" component={Referrals} />
         <Route path="/stats" component={Stats} />
         <Route path="/profile" component={Profile} />
+        <Route path="/chat" component={Chat} />
+        <Route path="/chat/:id" component={Chat} />
         <Route component={NotFound} />
       </Switch>
       
-      {location !== "/" && (
+      {showHeaderAndNav && (
         <BottomNavigation />
       )}
     </>

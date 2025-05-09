@@ -2,8 +2,33 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertUserSchema, insertMiningStatsSchema, insertMiningHistorySchema, insertNotificationSettingsSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertMiningStatsSchema, 
+  insertMiningHistorySchema, 
+  insertNotificationSettingsSchema,
+  insertChatMessageSchema,
+  insertChatConversationSchema
+} from "@shared/schema";
 import { nanoid } from "nanoid";
+// We'll use a simpler approach instead of OpenAI for chat responses
+const generateAIResponse = (message: string) => {
+  // Fallback responses for chat
+  const fallbackResponses = [
+    "Hello! How can I help you today?",
+    "That's an interesting question. What made you think of that?",
+    "I understand your concern. Let me know more about your situation.",
+    "Thanks for sharing that information. Is there anything else you'd like to discuss?",
+    "I'm designed to provide information and assistance with PTC mining. What would you like to know?",
+    "I'm here to help with any questions or concerns about mining PTC.",
+    "That's a great point! I appreciate your perspective.",
+    "Let me know if you need any clarification about PTC mining.",
+    "I can help explain more about this topic if you're interested.",
+    "Your question is important. I'll do my best to address it properly."
+  ];
+  
+  return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+};
 
 // Authentication middleware
 const authenticate = async (req: Request, res: Response, next: Function) => {
@@ -56,14 +81,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalMined: 0,
         currentRate: 0.1,
         miningActive: false,
+        lastMined: null,
+        miningUntil: null,
+        adBoostActive: false,
+        adBoostUntil: null,
         referralCount: 0,
-        referralMultiplier: 1.0,
+        referralMultiplier: 1.0
       });
       
       // Initialize notification settings
       await storage.createNotificationSettings({
         userId: user.id,
         enabled: true,
+        token: null
       });
       
       res.status(201).json(user);
@@ -309,6 +339,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error toggling notifications:', error);
       res.status(400).json({ message: 'Invalid notification data' });
+    }
+  });
+
+  // Chat routes
+  app.get('/api/chat/conversations', authenticate, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const conversations = await storage.getChatConversationsByUserId(user.id);
+      res.status(200).json(conversations);
+    } catch (error) {
+      console.error('Error fetching chat conversations:', error);
+      res.status(500).json({ message: 'Failed to fetch conversations' });
+    }
+  });
+  
+  app.post('/api/chat/conversations', authenticate, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { title } = insertChatConversationSchema.parse(req.body);
+      
+      const conversation = await storage.createChatConversation({
+        userId: user.id,
+        title
+      });
+      
+      res.status(201).json(conversation);
+    } catch (error) {
+      console.error('Error creating chat conversation:', error);
+      res.status(400).json({ message: 'Invalid conversation data' });
+    }
+  });
+  
+  app.get('/api/chat/conversations/:id', authenticate, async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const conversation = await storage.getChatConversationById(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ message: 'Conversation not found' });
+      }
+      
+      // Check if conversation belongs to user
+      const user = (req as any).user;
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      const messages = await storage.getChatMessagesByConversationId(conversationId.toString());
+      
+      res.status(200).json({
+        conversation,
+        messages
+      });
+    } catch (error) {
+      console.error('Error fetching conversation:', error);
+      res.status(500).json({ message: 'Failed to fetch conversation' });
+    }
+  });
+  
+  app.put('/api/chat/conversations/:id', authenticate, async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { title } = z.object({ title: z.string() }).parse(req.body);
+      
+      const conversation = await storage.getChatConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: 'Conversation not found' });
+      }
+      
+      // Check if conversation belongs to user
+      const user = (req as any).user;
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      const updatedConversation = await storage.updateChatConversation(conversationId, { title });
+      
+      res.status(200).json(updatedConversation);
+    } catch (error) {
+      console.error('Error updating conversation:', error);
+      res.status(400).json({ message: 'Invalid conversation data' });
+    }
+  });
+  
+  app.delete('/api/chat/conversations/:id', authenticate, async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      
+      const conversation = await storage.getChatConversationById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ message: 'Conversation not found' });
+      }
+      
+      // Check if conversation belongs to user
+      const user = (req as any).user;
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      await storage.deleteChatConversation(conversationId);
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      res.status(500).json({ message: 'Failed to delete conversation' });
+    }
+  });
+  
+  app.post('/api/chat/conversations/:id/messages', authenticate, async (req, res) => {
+    try {
+      const conversationId = req.params.id;
+      const { content } = insertChatMessageSchema.omit({ userId: true, conversationId: true, role: true }).parse(req.body);
+      
+      const user = (req as any).user;
+      
+      // Check if conversation exists and belongs to user
+      const conversation = await storage.getChatConversationById(parseInt(conversationId));
+      if (!conversation) {
+        return res.status(404).json({ message: 'Conversation not found' });
+      }
+      
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Create user message
+      const userMessage = await storage.createChatMessage({
+        userId: user.id,
+        conversationId,
+        content,
+        role: 'user'
+      });
+      
+      // Generate AI response using our simple function
+      const aiResponse = generateAIResponse(content);
+      
+      // Save AI response
+      const aiResponseObj = await storage.createChatMessage({
+        userId: user.id,
+        conversationId,
+        content: aiResponse,
+        role: 'assistant'
+      });
+      
+      res.status(201).json({
+        userMessage,
+        aiMessage: aiResponse
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      res.status(400).json({ message: 'Invalid message data' });
+    }
+  });
+  
+  app.post('/api/chat/username', authenticate, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { username } = z.object({ username: z.string().min(3).max(20) }).parse(req.body);
+      
+      // Update username
+      const updatedUser = await storage.updateUser(user.id, { username });
+      
+      res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error('Error updating username:', error);
+      res.status(400).json({ message: 'Invalid username' });
     }
   });
 
