@@ -1,33 +1,45 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useMining } from "@/hooks/use-mining";
+import { useBackgroundMining } from "@/hooks/use-background-mining";
+import { CloudLightning, WifiOff, Zap, Award } from "lucide-react";
 import { formatTime } from "@/lib/mining";
-import { CloudLightning } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
 
 export default function MiningSection() {
-  const { 
-    miningStats, 
-    isLoadingMiningStats,
-    timeRemaining,
-    miningProgress,
+  const {
+    isLoading,
+    offlineMode,
+    miningStatus,
+    canClaimReward,
     startMining,
-    isStartingMining,
-    claimMining,
-    isClaimingMining
-  } = useMining();
+    claimReward,
+    isMiningStarting,
+    isClaimingReward
+  } = useBackgroundMining();
   
-  const handleMiningAction = () => {
-    if (!miningStats) return;
-    
-    if (miningStats.miningActive) {
-      claimMining();
+  const [animation, setAnimation] = useState(false);
+
+  // Animation effect when mining
+  useEffect(() => {
+    if (miningStatus.miningActive && !miningStatus.miningCompleted) {
+      setAnimation(true);
     } else {
+      setAnimation(false);
+    }
+  }, [miningStatus.miningActive, miningStatus.miningCompleted]);
+
+  const handleAction = () => {
+    if (miningStatus.miningCompleted || canClaimReward) {
+      claimReward();
+    } else if (!miningStatus.miningActive) {
       startMining();
     }
   };
-  
-  if (isLoadingMiningStats) {
+
+  // Loading state
+  if (isLoading) {
     return (
       <section className="mb-8">
         <Card className="w-full">
@@ -54,56 +66,111 @@ export default function MiningSection() {
       </section>
     );
   }
-  
-  const isMiningActive = miningStats?.miningActive || false;
-  const miningButtonText = isMiningActive ? "Mining Active" : "Start Mining";
-  const miningRate = miningStats?.currentRate || 0.1;
-  
+
+  // Button text based on mining state
+  let buttonText = "Bắt đầu đào";
+  let buttonIcon = <CloudLightning className="h-5 w-5 mr-2" />;
+  let buttonClass = "bg-primary hover:bg-primary/90";
+
+  if (isMiningStarting) {
+    buttonText = "Đang bắt đầu...";
+  } else if (isClaimingReward) {
+    buttonText = "Đang nhận thưởng...";
+  } else if (miningStatus.miningCompleted || canClaimReward) {
+    buttonText = "Nhận thưởng";
+    buttonIcon = <Award className="h-5 w-5 mr-2" />;
+    buttonClass = "bg-yellow-500 hover:bg-yellow-600";
+  } else if (miningStatus.miningActive) {
+    buttonText = `Đang đào - ${miningStatus.timeRemainingFormatted}`;
+    buttonIcon = <Zap className="h-5 w-5 mr-2" />;
+    buttonClass = "bg-green-500 hover:bg-green-600";
+  }
+
+  // Calculate mining rate (mock value for demonstration)
+  const miningRate = 0.15;
+
   return (
     <section className="mb-8">
       <Card className="w-full">
         <CardContent className="p-5 relative overflow-hidden">
-          {isMiningActive && (
-            <div className="absolute top-0 right-0 bg-primary text-white text-xs font-semibold px-3 py-1 rounded-bl-lg">
-              Active
-            </div>
-          )}
+          {/* Status badges */}
+          <div className="absolute top-0 right-0 flex">
+            {offlineMode && (
+              <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 flex items-center mr-2">
+                <WifiOff className="h-3 w-3 mr-1" />
+                Offline
+              </Badge>
+            )}
+            
+            {miningStatus.miningActive && !miningStatus.miningCompleted && (
+              <Badge className="bg-green-500 text-white">
+                Đang đào
+              </Badge>
+            )}
+            
+            {miningStatus.miningCompleted && (
+              <Badge className="bg-yellow-500 text-white">
+                Hoàn thành
+              </Badge>
+            )}
+          </div>
           
           <h2 className="text-xl font-semibold mb-4">PTC Mining</h2>
           
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Mining Rate</p>
+              <p className="text-sm text-gray-600 mb-1">Tốc độ đào</p>
               <div className="flex items-center">
-                <span className="text-2xl font-bold text-primary">{miningRate.toFixed(1)}</span>
-                <span className="ml-1 text-gray-600">PTC / 24h</span>
+                <span className="text-2xl font-bold text-primary">{miningRate.toFixed(2)}</span>
+                <span className="ml-1 text-gray-600">PTC / giờ</span>
               </div>
             </div>
             
             <div>
-              <p className="text-sm text-gray-600 mb-1">Time Remaining</p>
-              <div className="text-2xl font-bold text-gray-800">{timeRemaining}</div>
+              <p className="text-sm text-gray-600 mb-1">Thời gian còn lại</p>
+              <div className="text-2xl font-bold text-gray-800">
+                {miningStatus.miningCompleted 
+                  ? "Hoàn thành" 
+                  : miningStatus.miningActive 
+                    ? miningStatus.timeRemainingFormatted
+                    : "--:--:--"}
+              </div>
             </div>
           </div>
           
-          <Progress value={miningProgress} className="h-3 mb-5" />
+          {/* Progress bar */}
+          <Progress 
+            value={miningStatus.miningActive ? miningStatus.progress : 0} 
+            className="h-3 mb-5" 
+          />
           
+          {/* Info message */}
+          {miningStatus.miningActive && !miningStatus.miningCompleted && (
+            <div className="mb-5 text-sm text-gray-600 bg-blue-50 p-3 rounded-md border border-blue-100">
+              <p className="text-center">
+                Quá trình đào vẫn diễn ra kể cả khi bạn không trực tuyến. Bạn sẽ nhận được thông báo khi hoàn thành.
+              </p>
+            </div>
+          )}
+          
+          {/* Action button */}
           <div className="flex justify-center">
             <Button 
-              className={`px-8 py-4 h-auto rounded-full shadow-md transition flex items-center justify-center ${isMiningActive ? 'bg-green-500 hover:bg-green-600 pulse-animation' : 'bg-primary hover:bg-primary/90'}`}
-              onClick={handleMiningAction}
-              disabled={isStartingMining || isClaimingMining}
+              className={`px-8 py-4 h-auto rounded-full shadow-md transition flex items-center justify-center ${buttonClass} ${animation ? 'animate-pulse' : ''}`}
+              onClick={handleAction}
+              disabled={isMiningStarting || isClaimingReward || (miningStatus.miningActive && !miningStatus.miningCompleted)}
             >
-              <CloudLightning className="h-5 w-5 mr-2" />
-              <span>
-                {isStartingMining 
-                  ? "Starting..." 
-                  : isClaimingMining 
-                    ? "Claiming..." 
-                    : miningButtonText}
-              </span>
+              {buttonIcon}
+              <span>{buttonText}</span>
             </Button>
           </div>
+          
+          {/* Offline warning */}
+          {offlineMode && !miningStatus.miningActive && (
+            <div className="mt-4 text-center text-sm text-red-600">
+              Cần kết nối internet để bắt đầu đào hoặc nhận thưởng
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>

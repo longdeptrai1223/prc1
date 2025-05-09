@@ -4,6 +4,25 @@ import { apiRequest } from './queryClient';
 let backgroundMiningInterval: number | null = null;
 const MINING_CHECK_INTERVAL = 60000; // Check every minute
 
+// Định nghĩa kiểu dữ liệu cho kết quả trả về từ API
+interface MiningStatusResponse {
+  miningActive: boolean;
+  miningUntil: string | null;
+  miningCompleted?: boolean;
+  timeRemaining?: number;
+  progress?: number;
+}
+
+interface MiningStartResponse {
+  success: boolean;
+  miningUntil: string;
+}
+
+interface MiningClaimResponse {
+  success: boolean;
+  amount: number;
+}
+
 /**
  * Khởi tạo hệ thống đào coin ở background
  * - Hệ thống sẽ tự động đào coin dựa vào thời gian thực, không phụ thuộc vào việc người dùng online hay không
@@ -29,9 +48,7 @@ export const initBackgroundMining = () => {
 export const checkMiningStatus = async () => {
   try {
     // Kiểm tra trạng thái đào từ server
-    const stats = await apiRequest('/api/mining/status', {
-      method: 'GET',
-    });
+    const stats = await apiRequest<MiningStatusResponse>('/api/mining/status');
     
     // Nếu đang đào và thời gian đã hết
     if (stats.miningActive && stats.miningUntil) {
@@ -84,8 +101,8 @@ export const checkMiningStatus = async () => {
  */
 export const startBackgroundMining = async (): Promise<boolean> => {
   try {
-    const response = await apiRequest('/api/mining/start', {
-      method: 'POST',
+    const response = await apiRequest<MiningStartResponse>('/api/mining/start', {
+      method: 'POST'
     });
     
     if (response.success) {
@@ -110,8 +127,8 @@ export const startBackgroundMining = async (): Promise<boolean> => {
  */
 export const claimBackgroundMiningReward = async (): Promise<{success: boolean, amount?: number}> => {
   try {
-    const response = await apiRequest('/api/mining/claim', {
-      method: 'POST',
+    const response = await apiRequest<MiningClaimResponse>('/api/mining/claim', {
+      method: 'POST'
     });
     
     if (response.success) {
