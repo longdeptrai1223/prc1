@@ -1,4 +1,5 @@
 {
+  "id": "ptc-mining-app",
   "short_name": "PTC Mining",
   "name": "PTC Mining App",
   "description": "Mine PTC cryptocurrency and earn rewards through referrals and ad views",
@@ -12,17 +13,38 @@
       "src": "logo192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "type": "image/png",
+      "sizes": "1080x1920",
+      "form_factor": "narrow"
     }
   ],
   "start_url": ".",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "theme_color": "#4f46e5",
   "background_color": "#ffffff",
   "orientation": "portrait",
@@ -44,5 +66,20 @@
     }
   ],
   "related_applications": [],
-  "categories": ["finance", "crypto", "productivity"]
+  "categories": ["finance", "crypto", "productivity"],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "share_target": {
+    "action": "/share-target",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
