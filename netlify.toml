@@ -11,7 +11,13 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  [[headers]]
+
+[[headers]]
   for = "/logo512.png"
   [headers.values]
     Content-Type = "image/png"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/json"
