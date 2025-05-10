@@ -1,5 +1,6 @@
 import { apiRequest } from './queryClient';
 import { queryClient } from './queryClient';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid
 
 // Format time in HH:mm:ss format
 export const formatTime = (seconds: number): string => {
@@ -92,6 +93,18 @@ export const applyReferralCode = async (referralId: string) => {
     console.error('Error applying referral code:', error);
     throw error;
   }
+};
+
+// Tạo và lấy referral ID
+export const generateReferralId = (): string => {
+  const referralId = uuidv4(); // Tạo mã ngẫu nhiên
+  localStorage.setItem('user_referral_id', referralId); // Lưu vào localStorage
+  return referralId;
+};
+
+// Lấy referral ID hiện tại
+export const getReferralId = (): string | null => {
+  return localStorage.getItem('user_referral_id') || null;
 };
 
 // Calculate remaining time for mining in seconds

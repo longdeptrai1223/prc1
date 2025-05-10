@@ -6,6 +6,8 @@ import {
   getLocalMiningStatus,
   canClaimReward,
   calculateTimeRemaining,
+  generateReferralId,
+  getReferralId,
 } from '@/lib/background-mining';
 import { apiRequest } from '@/lib/queryClient';
 import { isOnline, registerConnectivityListeners, showNotification } from '@/lib/service-worker';
@@ -27,9 +29,22 @@ interface MiningStatus extends MiningStatusResponse {
 
 export function useBackgroundMining() {
   const [offlineMode, setOfflineMode] = useState(!isOnline());
-  const [miningStatus, setMiningStatus] = useState<MiningStatus>(getLocalMiningStatus());
+  const [miningStatus, setMiningStatus] = useState<MiningStatus>({
+    ...getLocalMiningStatus(),
+    timeRemainingFormatted: '--:--:--', // Giá trị mặc định
+  });
+  const [referralId, setReferralId] = useState<string | null>(getReferralId()); // State cho referral ID
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Tạo referral ID nếu chưa có
+  useEffect(() => {
+    if (!referralId) {
+      const newReferralId = generateReferralId();
+      setReferralId(newReferralId);
+      console.log('Generated referral ID:', newReferralId); // Debug
+    }
+  }, [referralId]);
 
   // Lấy trạng thái đào từ API (khi online)
   const { data: apiMiningStatus, isLoading, refetch } = useQuery({
@@ -37,11 +52,11 @@ export function useBackgroundMining() {
     queryFn: async () => {
       try {
         const response = await apiRequest<MiningStatusResponse>('GET', '/api/mining/status');
+        console.log('API response:', response); // Debug: Kiểm tra dữ liệu từ API
+        const timeRemainingInSeconds = response.timeRemaining || calculateTimeRemaining(response.miningUntil);
         return {
           ...response,
-          timeRemainingFormatted: formatTime(
-            (response.timeRemaining || calculateTimeRemaining(response.miningUntil)) * 1000 // Chuyển từ giây sang mili-giây
-          ),
+          timeRemainingFormatted: formatTime(timeRemainingInSeconds), // formatTime nhận giây
         };
       } catch (error) {
         console.error('Error fetching mining status:', error);
@@ -109,10 +124,11 @@ export function useBackgroundMining() {
   // Cập nhật state local từ localStorage
   const updateLocalStatus = useCallback(() => {
     const localStatus = getLocalMiningStatus();
+    console.log('Local status:', localStatus); // Debug: Kiểm tra trạng thái local
     const timeRemainingInSeconds = calculateTimeRemaining(localStatus.miningUntil);
     const formattedStatus: MiningStatus = {
       ...localStatus,
-      timeRemainingFormatted: formatTime(timeRemainingInSeconds * 1000), // Chuyển từ giây sang mili-giây
+      timeRemainingFormatted: formatTime(timeRemainingInSeconds), // formatTime nhận giây
     };
     setMiningStatus(formattedStatus);
 
@@ -128,16 +144,28 @@ export function useBackgroundMining() {
     }
   }, []);
 
-  // Định kỳ cập nhật tình trạng đào (khi offline)
+  // Cập nhật thời gian đếm ngược theo thời gian thực (mỗi giây)
   useEffect(() => {
-    if (offlineMode && miningStatus.miningActive && !miningStatus.miningCompleted) {
+    if (miningStatus.miningActive && !miningStatus.miningCompleted) {
       const interval = setInterval(() => {
-        updateLocalStatus();
-      }, 10000); // Cập nhật mỗi 10 giây khi offline
+        const newTimeRemaining = calculateTimeRemaining(miningStatus.miningUntil);
+        setMiningStatus((prevStatus) => ({
+          ...prevStatus,
+          timeRemaining: newTimeRemaining,
+          timeRemainingFormatted: formatTime(newTimeRemaining),
+        }));
+
+        if (newTimeRemaining <= 0 && miningStatus.miningActive) {
+          localStorage.setItem('mining_completed', 'true');
+          showNotification('PTC Mining Completed', {
+            body: 'Mining has finished. You can now claim your reward!',
+          });
+        }
+      }, 1000); // Cập nhật mỗi giây để đếm ngược mượt mà
 
       return () => clearInterval(interval);
     }
-  }, [offlineMode, miningStatus.miningActive, miningStatus.miningCompleted, updateLocalStatus]);
+  }, [miningStatus.miningActive, miningStatus.miningCompleted, miningStatus.miningUntil]);
 
   // Đăng ký listener để theo dõi kết nối internet
   useEffect(() => {
@@ -206,11 +234,10 @@ export function useBackgroundMining() {
   // Kết hợp dữ liệu từ API và dữ liệu local
   const combinedMiningStatus = useCallback((): MiningStatus => {
     if (apiMiningStatus && !offlineMode) {
+      const timeRemainingInSeconds = apiMiningStatus.timeRemaining || calculateTimeRemaining(apiMiningStatus.miningUntil);
       return {
         ...apiMiningStatus,
-        timeRemainingFormatted:
-          apiMiningStatus.timeRemainingFormatted ||
-          formatTime((apiMiningStatus.timeRemaining || calculateTimeRemaining(apiMiningStatus.miningUntil)) * 1000), // Chuyển từ giây sang mili-giây
+        timeRemainingFormatted: formatTime(timeRemainingInSeconds),
       };
     }
     return miningStatus;
@@ -226,5 +253,6 @@ export function useBackgroundMining() {
     claimReward,
     isMiningStarting: startMiningMutation.isPending,
     isClaimingReward: claimRewardMutation.isPending,
+    referralId, // Trả về referral ID
   };
 }

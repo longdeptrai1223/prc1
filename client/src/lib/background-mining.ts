@@ -1,4 +1,5 @@
 import { apiRequest } from './queryClient';
+import { calculateTimeRemaining, generateReferralId, getReferralId } from './mining'; // Thêm import
 
 // Định nghĩa các hằng số và kiểu dữ liệu
 const MINING_CHECK_INTERVAL = 60000; // Check every minute
@@ -22,14 +23,6 @@ interface MiningClaimResponse {
 }
 
 let backgroundMiningInterval: number | null = null;
-
-// Hàm tính thời gian còn lại (time remaining) từ thời điểm kết thúc phiên đào
-export function calculateTimeRemaining(miningUntil: string | null): number {
-  if (!miningUntil) return 0;
-  const now = new Date().getTime();
-  const endTime = new Date(miningUntil).getTime();
-  return Math.max(0, endTime - now);
-}
 
 /**
  * Khởi tạo hệ thống đào coin ở background
@@ -177,3 +170,6 @@ export const stopBackgroundMining = () => {
     backgroundMiningInterval = null;
   }
 };
+
+// Export các hàm từ mining.ts
+export { calculateTimeRemaining, generateReferralId, getReferralId };
