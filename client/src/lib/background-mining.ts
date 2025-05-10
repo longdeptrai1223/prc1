@@ -1,10 +1,8 @@
-import { formatTime, calculateTimeRemaining, calculateMiningProgress } from './mining';
 import { apiRequest } from './queryClient';
 
-let backgroundMiningInterval: number | null = null;
+// Định nghĩa các hằng số và kiểu dữ liệu
 const MINING_CHECK_INTERVAL = 60000; // Check every minute
 
-// Định nghĩa kiểu dữ liệu cho kết quả trả về từ API
 interface MiningStatusResponse {
   miningActive: boolean;
   miningUntil: string | null;
@@ -23,16 +21,24 @@ interface MiningClaimResponse {
   amount: number;
 }
 
+let backgroundMiningInterval: number | null = null;
+
+// Hàm tính thời gian còn lại (time remaining) từ thời điểm kết thúc phiên đào
+export function calculateTimeRemaining(miningUntil: string | null): number {
+  if (!miningUntil) return 0;
+  const now = new Date().getTime();
+  const endTime = new Date(miningUntil).getTime();
+  return Math.max(0, endTime - now);
+}
+
 /**
  * Khởi tạo hệ thống đào coin ở background
  * - Hệ thống sẽ tự động đào coin dựa vào thời gian thực, không phụ thuộc vào việc người dùng online hay không
  * - Chỉ yêu cầu kết nối internet khi bắt đầu đào và khi nhận thưởng
  */
 export const initBackgroundMining = () => {
-  // Kiểm tra trạng thái đào hiện tại khi khởi động ứng dụng
   checkMiningStatus();
-  
-  // Thiết lập interval để kiểm tra định kỳ
+
   if (!backgroundMiningInterval) {
     backgroundMiningInterval = window.setInterval(() => {
       checkMiningStatus();
@@ -47,43 +53,30 @@ export const initBackgroundMining = () => {
  */
 export const checkMiningStatus = async () => {
   try {
-    // Kiểm tra trạng thái đào từ server
     const stats = await apiRequest<MiningStatusResponse>('/api/mining/status');
-    
-    // Nếu đang đào và thời gian đã hết
+
     if (stats.miningActive && stats.miningUntil) {
       const timeRemaining = calculateTimeRemaining(stats.miningUntil);
-      
-      // Nếu đã hết thời gian đào
+
       if (timeRemaining <= 0) {
         console.log('Mining completed, ready to claim rewards');
-        // Lưu trạng thái để người dùng có thể yêu cầu thưởng sau
         localStorage.setItem('mining_completed', 'true');
-        
-        // Trigger notification nếu được hỗ trợ và được cấp quyền
+
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('PTC Mining Completed', {
             body: 'Your mining session is complete! Claim your rewards now.',
-            icon: '/logo192.png'
+            icon: '/logo192.png',
           });
         }
       } else {
-        // Đang trong quá trình đào
-        const progress = calculateMiningProgress(stats.miningUntil);
-        const timeRemainingFormatted = formatTime(timeRemaining);
-        
-        console.log(`Mining in progress: ${progress.toFixed(2)}%, Time remaining: ${timeRemainingFormatted}`);
-        
-        // Lưu vào localStorage để hiển thị khi không có kết nối internet
-        localStorage.setItem('mining_progress', progress.toString());
+        console.log(`Mining in progress: Time remaining: ${timeRemaining}ms`);
         localStorage.setItem('mining_time_remaining', timeRemaining.toString());
         localStorage.setItem('mining_until', stats.miningUntil);
       }
     }
   } catch (error) {
     console.error('Failed to check mining status:', error);
-    
-    // Sử dụng dữ liệu đã lưu nếu không kết nối được internet
+
     const miningUntil = localStorage.getItem('mining_until');
     if (miningUntil) {
       const timeRemaining = calculateTimeRemaining(miningUntil);
@@ -102,15 +95,14 @@ export const checkMiningStatus = async () => {
 export const startBackgroundMining = async (): Promise<boolean> => {
   try {
     const response = await apiRequest<MiningStartResponse>('/api/mining/start', {
-      method: 'POST'
+      method: 'POST',
     });
-    
+
     if (response.success) {
-      // Lưu thời gian kết thúc vào localStorage
       localStorage.setItem('mining_until', response.miningUntil);
       localStorage.setItem('mining_active', 'true');
       localStorage.removeItem('mining_completed');
-      
+
       return true;
     }
     return false;
@@ -125,23 +117,24 @@ export const startBackgroundMining = async (): Promise<boolean> => {
  * - Yêu cầu kết nối internet
  * - Xóa dữ liệu đã lưu trong localStorage
  */
-export const claimBackgroundMiningReward = async (): Promise<{success: boolean, amount?: number}> => {
+export const claimBackgroundMiningReward = async (): Promise<{
+  success: boolean;
+  amount?: number;
+}> => {
   try {
     const response = await apiRequest<MiningClaimResponse>('/api/mining/claim', {
-      method: 'POST'
+      method: 'POST',
     });
-    
+
     if (response.success) {
-      // Xóa các dữ liệu đã lưu khi đã nhận thưởng thành công
       localStorage.removeItem('mining_completed');
       localStorage.removeItem('mining_active');
       localStorage.removeItem('mining_until');
-      localStorage.removeItem('mining_progress');
       localStorage.removeItem('mining_time_remaining');
-      
+
       return {
         success: true,
-        amount: response.amount
+        amount: response.amount,
       };
     }
     return { success: false };
@@ -161,26 +154,17 @@ export const canClaimReward = (): boolean => {
 /**
  * Lấy thông tin về tiến trình đào hiện tại (không cần kết nối internet)
  */
-export const getLocalMiningStatus = () => {
+export const getLocalMiningStatus = (): MiningStatusResponse => {
   const miningActive = localStorage.getItem('mining_active') === 'true';
   const miningCompleted = localStorage.getItem('mining_completed') === 'true';
   const miningUntil = localStorage.getItem('mining_until') || null;
-  
-  let progress = 0;
-  let timeRemaining = 0;
-  
-  if (miningUntil) {
-    progress = calculateMiningProgress(miningUntil);
-    timeRemaining = calculateTimeRemaining(miningUntil);
-  }
-  
+  const timeRemaining = miningUntil ? calculateTimeRemaining(miningUntil) : 0;
+
   return {
     miningActive,
     miningCompleted,
     miningUntil,
-    progress,
     timeRemaining,
-    timeRemainingFormatted: formatTime(timeRemaining)
   };
 };
 

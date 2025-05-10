@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { startBackgroundMining, claimBackgroundMiningReward, getLocalMiningStatus, canClaimReward, calculateTimeRemaining } from '@/lib/background-mining';
+import {
+  startBackgroundMining,
+  claimBackgroundMiningReward,
+  getLocalMiningStatus,
+  canClaimReward,
+  calculateTimeRemaining,
+} from '@/lib/background-mining';
 import { apiRequest } from '@/lib/queryClient';
 import { isOnline, registerConnectivityListeners, showNotification } from '@/lib/service-worker';
 import { formatTime } from '@/lib/mining';
@@ -11,7 +17,7 @@ interface MiningStatusResponse {
   miningActive: boolean;
   miningUntil: string | null;
   miningCompleted?: boolean;
-  timeRemaining?: number;
+  timeRemaining?: number; // Giây từ API
   progress?: number;
 }
 
@@ -33,10 +39,12 @@ export function useBackgroundMining() {
         const response = await apiRequest<MiningStatusResponse>('GET', '/api/mining/status');
         return {
           ...response,
-          timeRemainingFormatted: formatTime(response.timeRemaining || calculateTimeRemaining(response.miningUntil))
+          timeRemainingFormatted: formatTime(
+            (response.timeRemaining || calculateTimeRemaining(response.miningUntil)) * 1000 // Chuyển từ giây sang mili-giây
+          ),
         };
       } catch (error) {
-        console.error("Error fetching mining status:", error);
+        console.error('Error fetching mining status:', error);
         setOfflineMode(true);
         throw error;
       }
@@ -51,7 +59,7 @@ export function useBackgroundMining() {
         }
         updateLocalStatus();
       } catch (error) {
-        console.error("Error updating mining status:", error);
+        console.error('Error updating mining status:', error);
       }
     },
   });
@@ -63,17 +71,17 @@ export function useBackgroundMining() {
       queryClient.invalidateQueries({ queryKey: ['/api/mining/status'] });
       updateLocalStatus();
       toast({
-        title: "Mining Started",
-        description: "You will be notified when the mining process is complete",
+        title: 'Mining Started',
+        description: 'You will be notified when the mining process is complete',
       });
     },
     onError: () => {
       toast({
-        title: "Unable to Start Mining",
-        description: "Please check your network connection and try again",
-        variant: "destructive",
+        title: 'Unable to Start Mining',
+        description: 'Please check your network connection and try again',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Mutation để nhận thưởng
@@ -84,34 +92,38 @@ export function useBackgroundMining() {
         queryClient.invalidateQueries({ queryKey: ['/api/mining/status'] });
         updateLocalStatus();
         toast({
-          title: "Reward Claimed",
+          title: 'Reward Claimed',
           description: `You have received ${result.amount || 0} PTC coins`,
         });
       }
     },
     onError: () => {
       toast({
-        title: "Unable to Claim Reward",
-        description: "Please check your network connection and try again",
-        variant: "destructive",
+        title: 'Unable to Claim Reward',
+        description: 'Please check your network connection and try again',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Cập nhật state local từ localStorage
   const updateLocalStatus = useCallback(() => {
     const localStatus = getLocalMiningStatus();
-    const timeRemaining = calculateTimeRemaining(localStatus.miningUntil);
+    const timeRemainingInSeconds = calculateTimeRemaining(localStatus.miningUntil);
     const formattedStatus: MiningStatus = {
       ...localStatus,
-      timeRemainingFormatted: formatTime(timeRemaining)
+      timeRemainingFormatted: formatTime(timeRemainingInSeconds * 1000), // Chuyển từ giây sang mili-giây
     };
     setMiningStatus(formattedStatus);
-    
-    if (localStatus.miningActive && timeRemaining <= 0 && !localStatus.miningCompleted) {
+
+    if (
+      localStatus.miningActive &&
+      timeRemainingInSeconds <= 0 &&
+      !localStatus.miningCompleted
+    ) {
       localStorage.setItem('mining_completed', 'true');
       showNotification('PTC Mining Completed', {
-        body: 'Mining has finished. You can now claim your reward!'
+        body: 'Mining has finished. You can now claim your reward!',
       });
     }
   }, []);
@@ -122,7 +134,7 @@ export function useBackgroundMining() {
       const interval = setInterval(() => {
         updateLocalStatus();
       }, 10000); // Cập nhật mỗi 10 giây khi offline
-      
+
       return () => clearInterval(interval);
     }
   }, [offlineMode, miningStatus.miningActive, miningStatus.miningCompleted, updateLocalStatus]);
@@ -134,16 +146,16 @@ export function useBackgroundMining() {
         setOfflineMode(false);
         refetch();
         toast({
-          title: "Reconnected",
-          description: "Syncing data with the server...",
+          title: 'Reconnected',
+          description: 'Syncing data with the server...',
         });
       },
       () => {
         setOfflineMode(true);
         toast({
-          title: "Lost Internet Connection",
-          description: "App is running in offline mode. Mining will continue.",
-          variant: "destructive",
+          title: 'Lost Internet Connection',
+          description: 'App is running in offline mode. Mining will continue.',
+          variant: 'destructive',
         });
       }
     );
@@ -159,9 +171,10 @@ export function useBackgroundMining() {
   const startMining = useCallback(() => {
     if (offlineMode) {
       toast({
-        title: "Unable to Start Mining",
-        description: "Internet connection required to start mining. Please check your connection and try again.",
-        variant: "destructive",
+        title: 'Unable to Start Mining',
+        description:
+          'Internet connection required to start mining. Please check your connection and try again.',
+        variant: 'destructive',
       });
       return;
     }
@@ -172,17 +185,18 @@ export function useBackgroundMining() {
   const claimReward = useCallback(() => {
     if (offlineMode) {
       toast({
-        title: "Unable to Claim Reward Offline",
-        description: "Internet connection required to claim rewards. Please reconnect and try again.",
-        variant: "destructive",
+        title: 'Unable to Claim Reward Offline',
+        description:
+          'Internet connection required to claim rewards. Please reconnect and try again.',
+        variant: 'destructive',
       });
       return;
     }
     if (!canClaimReward()) {
       toast({
-        title: "Cannot Claim Reward Yet",
-        description: "Mining is not yet complete. Please wait until mining finishes.",
-        variant: "destructive",
+        title: 'Cannot Claim Reward Yet',
+        description: 'Mining is not yet complete. Please wait until mining finishes.',
+        variant: 'destructive',
       });
       return;
     }
@@ -194,7 +208,9 @@ export function useBackgroundMining() {
     if (apiMiningStatus && !offlineMode) {
       return {
         ...apiMiningStatus,
-        timeRemainingFormatted: apiMiningStatus.timeRemainingFormatted || formatTime(apiMiningStatus.timeRemaining || calculateTimeRemaining(apiMiningStatus.miningUntil))
+        timeRemainingFormatted:
+          apiMiningStatus.timeRemainingFormatted ||
+          formatTime((apiMiningStatus.timeRemaining || calculateTimeRemaining(apiMiningStatus.miningUntil)) * 1000), // Chuyển từ giây sang mili-giây
       };
     }
     return miningStatus;
