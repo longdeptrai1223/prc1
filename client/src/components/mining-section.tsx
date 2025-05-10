@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useBackgroundMining } from "@/hooks/use-background-mining";
-import { CloudLightning, WifiOff, Zap, Award } from "lucide-react";
+import { CloudLightning, WifiOff, Zap, Award, Loader2 } from "lucide-react";
 import { formatTime } from "@/lib/mining";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
@@ -68,21 +68,21 @@ export default function MiningSection() {
   }
 
   // Button text based on mining state
-  let buttonText = "Bắt đầu đào";
+  let buttonText = "Start Mining";
   let buttonIcon = <CloudLightning className="h-5 w-5 mr-2" />;
   let buttonClass = "bg-primary hover:bg-primary/90";
 
   if (isMiningStarting) {
-    buttonText = "Đang bắt đầu...";
+    buttonText = "Starting...";
   } else if (isClaimingReward) {
-    buttonText = "Đang nhận thưởng...";
+    buttonText = "Claiming...";
   } else if (miningStatus.miningCompleted || canClaimReward) {
-    buttonText = "Nhận thưởng";
+    buttonText = "Claim Reward";
     buttonIcon = <Award className="h-5 w-5 mr-2" />;
     buttonClass = "bg-yellow-500 hover:bg-yellow-600";
   } else if (miningStatus.miningActive) {
-    buttonText = `Đang đào - ${miningStatus.timeRemainingFormatted}`;
-    buttonIcon = <Zap className="h-5 w-5 mr-2" />;
+    buttonText = "Mining in Progress";
+    buttonIcon = <Loader2 className="h-5 w-5 mr-2 animate-spin" />;
     buttonClass = "bg-green-500 hover:bg-green-600";
   }
 
@@ -104,13 +104,13 @@ export default function MiningSection() {
             
             {miningStatus.miningActive && !miningStatus.miningCompleted && (
               <Badge className="bg-green-500 text-white">
-                Đang đào
+                Mining
               </Badge>
             )}
             
             {miningStatus.miningCompleted && (
               <Badge className="bg-yellow-500 text-white">
-                Hoàn thành
+                Completed
               </Badge>
             )}
           </div>
@@ -119,20 +119,20 @@ export default function MiningSection() {
           
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Tốc độ đào</p>
+              <p className="text-sm text-gray-600 mb-1">Mining Rate</p>
               <div className="flex items-center">
                 <span className="text-2xl font-bold text-primary">{miningRate.toFixed(2)}</span>
-                <span className="ml-1 text-gray-600">PTC / giờ</span>
+                <span className="ml-1 text-gray-600">PTC / hour</span>
               </div>
             </div>
             
             <div>
-              <p className="text-sm text-gray-600 mb-1">Thời gian còn lại</p>
+              <p className="text-sm text-gray-600 mb-1">Time Remaining</p>
               <div className="text-2xl font-bold text-gray-800">
                 {miningStatus.miningCompleted 
-                  ? "Hoàn thành" 
+                  ? "Completed" 
                   : miningStatus.miningActive 
-                    ? miningStatus.timeRemainingFormatted
+                    ? miningStatus.timeRemainingFormatted || "--:--:--"
                     : "--:--:--"}
               </div>
             </div>
@@ -148,7 +148,7 @@ export default function MiningSection() {
           {miningStatus.miningActive && !miningStatus.miningCompleted && (
             <div className="mb-5 text-sm text-gray-600 bg-blue-50 p-3 rounded-md border border-blue-100">
               <p className="text-center">
-                Quá trình đào vẫn diễn ra kể cả khi bạn không trực tuyến. Bạn sẽ nhận được thông báo khi hoàn thành.
+                Mining continues even when you're offline. You'll be notified when it's complete.
               </p>
             </div>
           )}
@@ -168,7 +168,7 @@ export default function MiningSection() {
           {/* Offline warning */}
           {offlineMode && !miningStatus.miningActive && (
             <div className="mt-4 text-center text-sm text-red-600">
-              Cần kết nối internet để bắt đầu đào hoặc nhận thưởng
+              Internet connection required to start mining or claim rewards
             </div>
           )}
         </CardContent>
