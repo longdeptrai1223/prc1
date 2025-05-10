@@ -26,7 +26,7 @@ export function useBackgroundMining() {
     queryKey: ['/api/mining/status'],
     queryFn: async () => {
       try {
-        return await apiRequest<MiningStatusResponse>('/api/mining/status');
+        return await apiRequest<MiningStatusResponse>('GET', '/api/mining/status');
       } catch (error) {
         console.error("Error fetching mining status:", error);
         setOfflineMode(true);
@@ -37,13 +37,10 @@ export function useBackgroundMining() {
     refetchInterval: 60000, // Refresh mỗi phút
     onSuccess: (data) => {
       try {
-        // Cập nhật thông tin vào localStorage để dùng khi offline
         localStorage.setItem('mining_active', data.miningActive ? 'true' : 'false');
         if (data.miningUntil) {
           localStorage.setItem('mining_until', data.miningUntil);
         }
-        
-        // Cập nhật state local
         updateLocalStatus();
       } catch (error) {
         console.error("Error updating mining status:", error);
@@ -98,10 +95,8 @@ export function useBackgroundMining() {
     const localStatus = getLocalMiningStatus();
     setMiningStatus(localStatus);
     
-    // Kiểm tra xem quá trình đào đã hoàn thành chưa
     if (localStatus.miningActive && localStatus.timeRemaining <= 0 && !localStatus.miningCompleted) {
       localStorage.setItem('mining_completed', 'true');
-      // Hiển thị thông báo nếu đào đã hoàn thành
       showNotification('Đào PTC đã hoàn thành', {
         body: 'Quá trình đào đã hoàn thành. Bạn có thể nhận thưởng ngay bây giờ!'
       });
@@ -122,22 +117,16 @@ export function useBackgroundMining() {
   // Đăng ký listener để theo dõi kết nối internet
   useEffect(() => {
     const cleanup = registerConnectivityListeners(
-      // Handler khi có kết nối internet
       () => {
         setOfflineMode(false);
-        refetch(); // Tải lại dữ liệu từ API
-        
-        // Hiển thị thông báo
+        refetch();
         toast({
           title: "Đã kết nối lại",
           description: "Đang đồng bộ dữ liệu với máy chủ...",
         });
       },
-      // Handler khi mất kết nối
       () => {
         setOfflineMode(true);
-        
-        // Hiển thị thông báo
         toast({
           title: "Mất kết nối internet",
           description: "Ứng dụng đang chạy ở chế độ offline. Quá trình đào vẫn tiếp tục.",
@@ -145,7 +134,6 @@ export function useBackgroundMining() {
         });
       }
     );
-    
     return cleanup;
   }, [refetch, toast]);
 
@@ -164,7 +152,6 @@ export function useBackgroundMining() {
       });
       return;
     }
-    
     startMiningMutation.mutate();
   }, [offlineMode, startMiningMutation, toast]);
 
@@ -178,7 +165,6 @@ export function useBackgroundMining() {
       });
       return;
     }
-    
     if (!canClaimReward()) {
       toast({
         title: "Chưa thể nhận thưởng",
@@ -187,17 +173,14 @@ export function useBackgroundMining() {
       });
       return;
     }
-    
     claimRewardMutation.mutate();
   }, [offlineMode, claimRewardMutation, toast]);
 
   // Kết hợp dữ liệu từ API và dữ liệu local
   const combinedMiningStatus = useCallback(() => {
     if (apiMiningStatus && !offlineMode) {
-      // Nếu có dữ liệu API và đang online, ưu tiên sử dụng dữ liệu API
       return apiMiningStatus;
     }
-    // Ngược lại, sử dụng dữ liệu đã lưu trong localStorage
     return miningStatus;
   }, [apiMiningStatus, offlineMode, miningStatus]);
 
